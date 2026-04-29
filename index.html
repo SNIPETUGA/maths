@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mathos</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #F5F0E8;
+      color: #1C1C1E;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: #1C1C1E;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .logo-name {
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8A7B6A;
+      margin-bottom: 12px;
+    }
+
+    .form {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+      border: 0.5px solid rgba(28,28,30,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 0.5px solid rgba(28,28,30,0.15);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      background: #F5F0E8;
+      color: #1C1C1E;
+      outline: none;
+    }
+
+    input::placeholder, textarea::placeholder { color: #C4BCAF; }
+
+    button {
+      padding: 14px;
+      background: #1C1C1E;
+      color: #F5F0E8;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+
+    .favour-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      border: 0.5px solid rgba(28,28,30,0.08);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .favour-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #C9A96E;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .favour-person {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1C1C1E;
+    }
+
+    .favour-desc {
+      font-size: 13px;
+      font-weight: 300;
+      color: #8A7B6A;
+      margin-top: 2px;
+    }
+
+    .favour-date {
+      font-size: 11px;
+      color: #8A7B6A;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .empty {
+      font-size: 13px;
+      font-weight: 300;
+      color: #8A7B6A;
+      text-align: center;
+      padding: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-mark">
+      <svg width="22" height="22" viewBox="0 0 56 56" fill="none">
+        <path d="M10 44 L10 16 L28 34 L46 16 L46 44" stroke="#F5F0E8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M18 44 L38 44" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="28" cy="34" r="4" fill="#C9A96E"/>
+      </svg>
+    </div>
+    <div class="logo-name">mathos</div>
+  </div>
+
+  <div class="section-title">Log a favour</div>
+  <div class="form">
+    <input type="text" id="person" placeholder="Who did you do it for?">
+    <input type="text" id="description" placeholder="What did you do?">
+    <button onclick="logFavour()">Log this favour</button>
+  </div>
+
+  <div class="section-title">All favours</div>
+  <div id="favours-list"></div>
+
+  <script>
+    const API = "http://127.0.0.1:5000"
+
+    async function loadFavours() {
+      const res = await fetch(`${API}/favours`)
+      const favours = await res.json()
+      const list = document.getElementById("favours-list")
+
+      if (favours.length === 0) {
+        list.innerHTML = '<div class="empty">No favours logged yet.</div>'
+        return
+      }
+
+      list.innerHTML = favours.reverse().map(f => `
+        <div class="favour-card">
+          <div class="favour-dot"></div>
+          <div>
+            <div class="favour-person">${f.person}</div>
+            <div class="favour-desc">${f.description}</div>
+            <div class="favour-date">${f.date}</div>
+          </div>
+        </div>
+      `).join("")
+    }
+
+    async function logFavour() {
+      const person = document.getElementById("person").value.trim()
+      const description = document.getElementById("description").value.trim()
+
+      if (!person || !description) {
+        alert("Please fill in both fields.")
+        return
+      }
+
+      await fetch(`${API}/favours`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person, description })
+      })
+
+      document.getElementById("person").value = ""
+      document.getElementById("description").value = ""
+
+      loadFavours()
+    }
+
+    loadFavours()
+  </script>
+
+</body>
+</html>

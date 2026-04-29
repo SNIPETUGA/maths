@@ -1,6 +1,7 @@
 # Mathos - Flask API
 
 from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 from datetime import date
 
@@ -10,6 +11,10 @@ def connect():
     conn = sqlite3.connect("mathos.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+@app.route("/")
+def index():
+    return send_from_directory(".", "index.html")
 
 def setup():
     conn = connect()
