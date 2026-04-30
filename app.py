@@ -219,8 +219,8 @@ def react_to_favour(favour_id):
         return jsonify({"error": "Invalid reaction"}), 400
     conn = connect()
     conn.execute(
-        "UPDATE favours SET reaction = ? WHERE id = ? AND person = ?",
-        (reaction, favour_id, session["username"])
+        "UPDATE favours SET reaction = ? WHERE id = ?",
+        (reaction, favour_id)
     )
     conn.commit()
     conn.close()
