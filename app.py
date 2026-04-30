@@ -1,5 +1,7 @@
 # Mathos - Flask API with auth
 
+import os
+
 from flask import Flask, request, jsonify, send_from_directory, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
@@ -30,6 +32,16 @@ def setup():
             description TEXT NOT NULL,
             date TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            FOREIGN KEY (requester_id) REFERENCES users (id),
+            FOREIGN KEY (receiver_id) REFERENCES users (id)
         )
     """)
     conn.commit()
@@ -117,8 +129,86 @@ def get_by_person(person):
     conn.close()
     return jsonify([dict(row) for row in rows])
 
+@app.route("/contacts/request", methods=["POST"])
+def send_request():
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.get_json()
+    username = data["username"]
+    conn = connect()
+    user = conn.execute(
+        "SELECT * FROM users WHERE username = ?", (username,)
+    ).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+    if user["id"] == session["user_id"]:
+        conn.close()
+        return jsonify({"error": "You can't add yourself"}), 400
+    existing = conn.execute(
+        "SELECT * FROM contacts WHERE requester_id = ? AND receiver_id = ?",
+        (session["user_id"], user["id"])
+    ).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"error": "Request already sent"}), 400
+    conn.execute(
+        "INSERT INTO contacts (requester_id, receiver_id) VALUES (?, ?)",
+        (session["user_id"], user["id"])
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"message": f"Request sent to {username}"}), 201
+
+@app.route("/contacts/pending", methods=["GET"])
+def pending_requests():
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    conn = connect()
+    rows = conn.execute("""
+        SELECT contacts.id, users.username
+        FROM contacts
+        JOIN users ON contacts.requester_id = users.id
+        WHERE contacts.receiver_id = ? AND contacts.status = 'pending'
+    """, (session["user_id"],)).fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@app.route("/contacts/accept/<int:contact_id>", methods=["POST"])
+def accept_request(contact_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    conn = connect()
+    conn.execute(
+        "UPDATE contacts SET status = 'accepted' WHERE id = ? AND receiver_id = ?",
+        (contact_id, session["user_id"])
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Contact accepted"}), 200
+
+@app.route("/contacts", methods=["GET"])
+def get_contacts():
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    conn = connect()
+    rows = conn.execute("""
+        SELECT users.id, users.username
+        FROM contacts
+        JOIN users ON (
+            CASE
+                WHEN contacts.requester_id = ? THEN contacts.receiver_id
+                ELSE contacts.requester_id
+            END
+        ) = users.id
+        WHERE (contacts.requester_id = ? OR contacts.receiver_id = ?)
+        AND contacts.status = 'accepted'
+    """, (session["user_id"], session["user_id"], session["user_id"])).fetchall()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
 setup()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    app.run(debug=True, port=5001)
