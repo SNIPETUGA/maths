@@ -123,6 +123,19 @@
     }
     .tab.active { background: #1C1C1E; color: #F5F0E8; border-color: #1C1C1E; }
 
+    .btn-react {
+      padding: 6px 10px;
+      background: #F5F0E8;
+      border: 0.5px solid rgba(28,28,30,0.15);
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+.btn-react:hover {
+  background: #EDE8E0;
+}
+
     .hidden { display: none; }
   </style>
 </head>
@@ -385,9 +398,9 @@
               ${f.reaction
                 ? `<span style="font-size:18px;">${f.reaction}</span>`
                 : `
-                  <button class="btn-logout" onclick="react(${f.id}, '❤️')">❤️</button>
-                  <button class="btn-logout" onclick="react(${f.id}, '🙏')">🙏</button>
-                  <button class="btn-logout" onclick="react(${f.id}, '😊')">😊</button>
+                  <button class="btn-react" onclick="react(${f.id}, '❤️')">❤️</button>
+                  <button class="btn-react" onclick="react(${f.id}, '🙏')">🙏</button>
+                  <button class="btn-react" onclick="react(${f.id}, '😊')">😊</button>
                 `
               }
             </div>
